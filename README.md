@@ -134,4 +134,10 @@ Device "Tesla T4 (0)"
       11         -         -         -           -  2.866382ms  Gpu page fault groups
 Total CPU Page faults: 36
 ```
+
 For some reason, using 4096 blocks does not improve performance to the same level as increasing the number of threads within a single block.
+Possible reasons for limited speedup from multiple blocks:
+- **Memory Bandwidth Saturation**: With element-wise operations on a large array, your performance is often limited by memory bandwidth rather than compute capability. The Tesla T4 has a finite memory bandwidth, and with 256 threads per block, you may already be reaching close to that limit. Adding more blocks won't reduce the time significantly since memory transfer speeds are the bottleneck.
+- **Occupancy and Latency Hiding**: CUDA kernels benefit from having enough threads to keep the GPU fully occupied. However, there’s a threshold where adding more blocks doesn't increase occupancy meaningfully, as the GPU’s resources (e.g., streaming multiprocessors, registers, etc.) are already well-utilized.
+- **Thread Divergence and Warp Utilization**: CUDA works best with fully occupied warps (32 threads executing the same instruction simultaneously). With 256 threads per block, you're using exactly 8 warps, which aligns well with GPU architecture. Increasing the number of blocks doesn’t necessarily mean the work will execute faster since the GPU can handle a limited number of concurrent threads.
+- **Kernel Launch Overhead**: Launching more blocks introduces a bit of overhead due to scheduling. For simple operations like element-wise addition, this overhead might offset some of the potential gains from additional blocks.
